@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"math/rand"
 	"sync"
@@ -35,22 +36,35 @@ func (c *Consumer) Start(ctx context.Context) {
 	go c.Receive(ctx)
 	log.Println("receive start:")
 	count := 0;
+	time.Sleep(time.Millisecond*20)
 	for {
 		v1,ok := mp.Load(minId)
 		if ok {
+			//fmt.Println("min = ", minId)
 			curData,_ := v1.([]*VersionedData)
+			if curData == nil {
+				if count < 2 {
+					time.Sleep(time.Millisecond*10)
+					count++
+				} else {
+					minId++
+				}
+				continue
+			}
 			sendData := curData[0]
+			//fmt.Println("len = ", len(curData))
 			if len(curData) == 1 {
-				mp.Delete(minId)
+				curData = nil
 			} else {
 				curData = curData[1:]
 			}
 			mp.Store(minId, curData)
 			c.ch<- sendData
 		} else {
-			//fmt.Println("cannot find versionID of ", minId)
-			if count < 20 {
+			fmt.Println("cannot find versionID of ", minId)
+			if count < 2 {
 				time.Sleep(time.Millisecond*10)
+				count++
 			} else {
 				minId++
 			}

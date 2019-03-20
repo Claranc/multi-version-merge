@@ -27,7 +27,7 @@ func (v *Verifier) Start(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case t := <-v.ch:
-			fmt.Printf("versionId = %d, producerId = %d, streamId = %d\n", t.VersionID, t.ProducerID,t.StreamID )
+			fmt.Printf("versionId = %d, producerId = %d, streamId = %d, data = %s\n", t.VersionID, t.ProducerID,t.StreamID, t.Data )
 		}
 	}
 
