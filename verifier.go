@@ -48,7 +48,7 @@ func (v *Verifier) Start(ctx context.Context) {
 				//如果收到更高版本的数据，更新当前的curId
 				curId = t.VersionID
 			} else if (t.VersionID < curId) {
-				//如果出现了新的数据包小于当前versionId，则代表错误，程序有问题
+				//如果出现了新的数据包小于当前versionId，则代表错误，程序编写有问题
 				log.Fatal("output wrong")
 			}
 		}
