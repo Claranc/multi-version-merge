@@ -77,6 +77,11 @@ func (c *Consumer) Start(ctx context.Context) {
 			return
 		default:
 		}
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
 	}
 
 }
