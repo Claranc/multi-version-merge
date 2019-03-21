@@ -64,6 +64,11 @@ func (c *Consumer) Start(ctx context.Context) {
 			//如果没找到key对应的value，表明还没有该版本的数据包发送过来，跳过吧
 			minId++
 		}
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
 	}
 
 }
