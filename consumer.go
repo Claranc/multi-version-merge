@@ -2,9 +2,7 @@ package main
 
 import (
 	"context"
-	"math/rand"
 	"sync"
-	"time"
 )
 
 //并发安全字典存储数据包，一边存储一边取走。key为VersionId,value为当前收到的VersionId下的所有数据包
@@ -39,7 +37,10 @@ func NewConsumer(channels []<-chan *VersionedData, streamCount int64) *Consumer 
 func (c *Consumer) Start(ctx context.Context) {
 	// TODO: implement this to consume data from c.dataChannels, and merged result should send to c.ch
 	//将收到的数据存储到map中的协程
-	go c.Receive(ctx)
+	var SIZE int = len(c.dataChannels)
+	for i := 0; i < SIZE; i++ {
+		go c.Receive(ctx, i)
+	}
 	//把versionID为0初始化一下，不然下面的OK一直为false
 	mp.Store(int64(0), nil)
 	for {
@@ -81,22 +82,13 @@ func (c *Consumer) Start(ctx context.Context) {
 
 }
 
-func (c *Consumer) Receive(ctx context.Context) {
+func (c *Consumer) Receive(ctx context.Context, i int) {
 	for {
 		var em *VersionedData //定义当前从生产者数据通道接收到的一个数据包
-		t := rand.New(rand.NewSource(time.Now().UnixNano())) //随机种子
-		channelNum := t.Intn(len(c.dataChannels))
 		select {
 		case <-ctx.Done():
 			return
-		case em = <-c.dataChannels[channelNum]:  //随机从一个生产者通道接收一个数据包(这儿是个性能瓶颈,只能一个一个地接收)
-												//因为我不会写从k个通道中同时接收数据的语法(k值不固定),下面示例代码k为3为定值
-												// 当k为变量我就不知道该怎么写了
-												//select {
-												//case <-ch1:
-												//case <-ch2:
-												//case <-ch3:
-												//}
+		case em = <-c.dataChannels[i]:
 		}
 		//取出接收到的数据包的版本号和数据流编号
 		dataId := em.VersionID
@@ -108,7 +100,7 @@ func (c *Consumer) Receive(ctx context.Context) {
 		}
 		//如果数据包版本大于当前版本,则在状态map中把该数据流的状态置为true
 		//表示此数据流已经发送完当前版本的数据包了
-		var key = [2]int64{int64(channelNum),streamId}
+		var key = [2]int64{int64(i),streamId}
 		//不是并发安全字典，写数据的时候加个锁，防止和清空的时候冲突
 		mu.Lock()
 		ChannelState[key] = true
